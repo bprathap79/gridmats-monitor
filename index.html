@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GridMats — Live Monitor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{--bg:#0f172a;--card:#1e293b;--accent:#38bdf8;--green:#4ade80;--yellow:#fbbf24;--red:#f87171;--text:#e2e8f0;--sub:#94a3b8}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh}
+  header{background:var(--card);border-bottom:1px solid #334155;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+  header h1{font-size:1.3rem;color:var(--accent)}
+  .last-update{font-size:.75rem;color:var(--sub)}
+  .container{max-width:1200px;margin:0 auto;padding:24px}
+  .config-box{background:var(--card);border:1px solid #334155;border-radius:12px;padding:16px 20px;margin-bottom:24px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .config-box label{font-size:.75rem;color:var(--sub);text-transform:uppercase;letter-spacing:1px}
+  input[type=text]{background:#0f172a;border:1px solid #334155;color:var(--text);padding:8px 12px;border-radius:8px;font-size:.85rem;width:520px;outline:none}
+  input[type=text]:focus{border-color:var(--accent)}
+  button{padding:8px 16px;border-radius:8px;border:none;font-size:.82rem;font-weight:600;cursor:pointer;background:var(--accent);color:#0f172a}
+  button:hover{opacity:.85}
+
+  /* Site filter tabs */
+  .site-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+  .tab{padding:6px 14px;border-radius:20px;border:1px solid #334155;font-size:.78rem;cursor:pointer;color:var(--sub);background:var(--card);transition:.2s}
+  .tab.active{background:var(--accent);color:#0f172a;border-color:var(--accent)}
+
+  /* KPI cards */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+  .kpi{background:var(--card);border-radius:12px;padding:16px;text-align:center;border:1px solid #334155}
+  .kpi-icon{font-size:1.8rem;margin-bottom:6px}
+  .kpi-label{font-size:.68rem;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+  .kpi-value{font-size:1.8rem;font-weight:700}
+  .kpi-unit{font-size:.8rem;color:var(--sub)}
+  .kpi-site{font-size:.65rem;color:var(--sub);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar-wrap{background:#0f172a;border-radius:6px;height:6px;margin-top:8px}
+  .bar{height:100%;border-radius:6px}
+
+  /* Charts */
+  .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;margin-bottom:24px}
+  .chart-card{background:var(--card);border-radius:12px;padding:20px;border:1px solid #334155}
+  .chart-title{font-size:.82rem;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px}
+
+  /* Map */
+  .map-card{background:var(--card);border-radius:12px;padding:20px;border:1px solid #334155;margin-bottom:24px}
+  .map-title{font-size:.82rem;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px}
+  #map{height:380px;border-radius:8px;background:#1e293b}
+
+  /* Data table */
+  .table-card{background:var(--card);border-radius:12px;padding:20px;border:1px solid #334155;overflow-x:auto}
+  .table-title{font-size:.82rem;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;font-size:.8rem}
+  th{color:var(--sub);font-weight:600;padding:8px 12px;text-align:left;border-bottom:1px solid #334155;white-space:nowrap}
+  td{padding:8px 12px;border-bottom:1px solid #1e293b;color:var(--text)}
+  tr:hover td{background:#243044}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.7rem;background:#1e3a2f;color:var(--green)}
+
+  .loading{text-align:center;padding:40px;color:var(--sub)}
+  .error{text-align:center;padding:20px;color:var(--red);background:#3a1e1e;border-radius:8px;margin-bottom:16px}
+  footer{text-align:center;padding:20px;font-size:.72rem;color:#475569}
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+</head>
+<body>
+
+<header>
+  <h1>🏗️ GridMats Pavement Monitor</h1>
+  <div class="last-update">Last updated: <span id="lastUpdate">--</span></div>
+</header>
+
+<div class="container">
+
+  <!-- Google Sheet Config -->
+  <div class="config-box">
+    <label>Google Sheet ID</label>
+    <input type="text" id="sheetId" placeholder="Paste your Google Sheet ID here (from the URL)">
+    <button onclick="loadData()">🔄 Load Data</button>
+  </div>
+
+  <div id="errorBox" style="display:none" class="error"></div>
+  <div id="loadingBox" class="loading" style="display:none">⏳ Loading data from Google Sheets...</div>
+
+  <!-- Site Tabs -->
+  <div class="site-tabs" id="siteTabs"></div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <!-- Charts -->
+  <div class="charts-grid" id="chartsGrid"></div>
+
+  <!-- Map -->
+  <div class="map-card">
+    <div class="map-title">📍 Site Locations</div>
+    <div id="map"></div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="table-card">
+    <div class="table-title">📋 Recent Readings</div>
+    <div id="tableWrap"><div class="loading">Load data above to see readings</div></div>
+  </div>
+
+</div>
+
+<footer>GridMats &copy; 2025 | Pavement Intelligence System</footer>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────
+const SENSOR_META = {
+  temp:      { icon:'🌡️', unit:'°C',  color:'#f97316', max:60  },
+  humidity:  { icon:'💧', unit:'%',   color:'#38bdf8', max:100 },
+  moisture:  { icon:'🪨', unit:'%',   color:'#4ade80', max:100 },
+  co2:       { icon:'🌫️', unit:'ppm', color:'#a78bfa', max:2000},
+  vibration: { icon:'📳', unit:'',    color:'#fb7185', max:100 },
+  rainfall:  { icon:'🌧️', unit:'%',   color:'#60a5fa', max:100 },
+  light:     { icon:'☀️', unit:'%',   color:'#fbbf24', max:100 },
+  flood:     { icon:'🚨', unit:'',    color:'#f87171', max:1   },
+};
+
+function getMeta(key) {
+  return SENSOR_META[key.toLowerCase()] || { icon:'📡', unit:'', color:'#94a3b8', max:100 };
+}
+
+// ── State ────────────────────────────────────────────────────────
+let allRows    = [];
+let allHeaders = [];
+let sites      = [];
+let activeSite = 'All';
+let map        = null;
+let charts     = {};
+
+// ── Load from Google Sheets (CSV export) ────────────────────────
+async function loadData() {
+  const sheetId = document.getElementById('sheetId').value.trim();
+  if (!sheetId) { showError('Please paste your Google Sheet ID first'); return; }
+
+  // Save to localStorage for convenience
+  localStorage.setItem('gridmats_sheet_id', sheetId);
+
+  showLoading(true);
+  hideError();
+
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Sheet1`;
+
+  try {
+    const res  = await fetch(url);
+    const text = await res.text();
+    parseCSV(text);
+    renderAll();
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+  } catch(e) {
+    showError('Could not load sheet. Make sure it is shared as "Anyone with the link can view".');
+  }
+  showLoading(false);
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  allHeaders  = lines[0].split(',').map(h => h.replace(/"/g,'').trim());
+  allRows     = lines.slice(1).map(line => {
+    const vals = line.match(/(".*?"|[^,]+)(?=,|$)/g) || [];
+    let obj = {};
+    allHeaders.forEach((h, i) => {
+      obj[h] = (vals[i] || '').replace(/"/g,'').trim();
+    });
+    return obj;
+  }).filter(r => r['Site'] && r['Site'] !== '');
+
+  sites = ['All', ...new Set(allRows.map(r => r['Site']))];
+}
+
+function getFilteredRows() {
+  if (activeSite === 'All') return allRows;
+  return allRows.filter(r => r['Site'] === activeSite);
+}
+
+function getSensorHeaders() {
+  const fixed = ['Timestamp','Site','Latitude','Longitude','Device Time'];
+  return allHeaders.filter(h => !fixed.includes(h) && h !== '');
+}
+
+// ── Render All ───────────────────────────────────────────────────
+function renderAll() {
+  renderTabs();
+  renderKPIs();
+  renderCharts();
+  renderMap();
+  renderTable();
+}
+
+// ── Site Tabs ────────────────────────────────────────────────────
+function renderTabs() {
+  const el = document.getElementById('siteTabs');
+  el.innerHTML = sites.map(s =>
+    `<div class="tab ${s===activeSite?'active':''}" onclick="switchSite('${s}')">${s}</div>`
+  ).join('');
+}
+
+function switchSite(site) {
+  activeSite = site;
+  renderAll();
+}
+
+// ── KPI Cards (latest reading per sensor) ───────────────────────
+function renderKPIs() {
+  const rows    = getFilteredRows();
+  const sensors = getSensorHeaders();
+  const grid    = document.getElementById('kpiGrid');
+
+  if (!rows.length) { grid.innerHTML = '<div class="loading">No data</div>'; return; }
+
+  // Latest row per site
+  const latestBySite = {};
+  rows.forEach(r => { latestBySite[r['Site']] = r; });
+
+  grid.innerHTML = '';
+
+  sensors.forEach(sensor => {
+    const meta = getMeta(sensor);
+    Object.values(latestBySite).forEach(row => {
+      const val = parseFloat(row[sensor]);
+      if (isNaN(val)) return;
+      const pct = Math.min((val / meta.max) * 100, 100);
+      const card = document.createElement('div');
+      card.className = 'kpi';
+      card.innerHTML = `
+        <div class="kpi-icon">${meta.icon}</div>
+        <div class="kpi-label">${sensor}</div>
+        <div class="kpi-value">${val.toFixed(1)}</div>
+        <div class="kpi-unit">${meta.unit}</div>
+        <div class="kpi-site">${row['Site']}</div>
+        <div class="bar-wrap"><div class="bar" style="width:${pct}%;background:${meta.color}"></div></div>`;
+      grid.appendChild(card);
+    });
+  });
+}
+
+// ── Charts (one per sensor, all sites overlaid) ──────────────────
+function renderCharts() {
+  const rows    = getFilteredRows();
+  const sensors = getSensorHeaders();
+  const grid    = document.getElementById('chartsGrid');
+
+  // Destroy old charts
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
+  grid.innerHTML = '';
+
+  if (!rows.length) return;
+
+  const COLORS = ['#38bdf8','#4ade80','#f97316','#a78bfa','#fb7185','#fbbf24','#60a5fa'];
+  const siteList = [...new Set(rows.map(r => r['Site']))];
+
+  sensors.forEach(sensor => {
+    const meta = getMeta(sensor);
+    const card = document.createElement('div');
+    card.className = 'chart-card';
+    const canvasId = 'chart-' + sensor;
+    card.innerHTML = `<div class="chart-title">${meta.icon} ${sensor} ${meta.unit ? '('+meta.unit+')' : ''}</div><canvas id="${canvasId}"></canvas>`;
+    grid.appendChild(card);
+
+    const datasets = siteList.map((site, idx) => {
+      const siteRows = rows.filter(r => r['Site'] === site && r[sensor] !== '');
+      return {
+        label: site,
+        data: siteRows.map(r => ({
+          x: r['Device Time'] || r['Timestamp'],
+          y: parseFloat(r[sensor])
+        })).filter(p => !isNaN(p.y)),
+        borderColor: COLORS[idx % COLORS.length],
+        backgroundColor: COLORS[idx % COLORS.length] + '22',
+        tension: 0.4,
+        fill: false,
+        pointRadius: 3,
+      };
+    });
+
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    charts[sensor] = new Chart(ctx, {
+      type: 'line',
+      data: { datasets },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: '#94a3b8', font: { size: 11 } } }
+        },
+        scales: {
+          x: {
+            ticks: { color:'#94a3b8', maxTicksLimit:6, maxRotation:0 },
+            grid:  { color:'#1e293b' }
+          },
+          y: {
+            ticks: { color:'#94a3b8' },
+            grid:  { color:'#1e293b' }
+          }
+        }
+      }
+    });
+  });
+}
+
+// ── Map ──────────────────────────────────────────────────────────
+function renderMap() {
+  const rows = getFilteredRows();
+  if (!map) {
+    map = L.map('map').setView([20.5937, 78.9629], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+  }
+
+  // Clear old markers
+  map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
+
+  const latestBySite = {};
+  rows.forEach(r => {
+    if (r['Latitude'] && r['Longitude']) latestBySite[r['Site']] = r;
+  });
+
+  const sensors   = getSensorHeaders();
+  const bounds    = [];
+
+  Object.values(latestBySite).forEach(row => {
+    const lat = parseFloat(row['Latitude']);
+    const lng = parseFloat(row['Longitude']);
+    if (isNaN(lat) || isNaN(lng) || (lat===0 && lng===0)) return;
+
+    const sensorLines = sensors.map(s => {
+      const meta = getMeta(s);
+      const val  = parseFloat(row[s]);
+      return isNaN(val) ? '' : `<tr><td>${meta.icon} ${s}</td><td><b>${val.toFixed(1)} ${meta.unit}</b></td></tr>`;
+    }).filter(Boolean).join('');
+
+    const popup = `
+      <div style="font-family:'Segoe UI',sans-serif;min-width:180px">
+        <b style="color:#38bdf8">${row['Site']}</b><br>
+        <small style="color:#666">${row['Device Time']||row['Timestamp']}</small>
+        <table style="margin-top:8px;width:100%;font-size:12px">${sensorLines}</table>
+      </div>`;
+
+    const marker = L.circleMarker([lat, lng], {
+      radius: 10, fillColor: '#38bdf8', color: '#fff',
+      weight: 2, opacity: 1, fillOpacity: 0.8
+    }).addTo(map).bindPopup(popup);
+
+    bounds.push([lat, lng]);
+  });
+
+  if (bounds.length > 0) {
+    map.fitBounds(bounds, { padding: [40, 40] });
+  }
+}
+
+// ── Table ────────────────────────────────────────────────────────
+function renderTable() {
+  const rows    = getFilteredRows().slice().reverse().slice(0, 50);
+  const sensors = getSensorHeaders();
+  const wrap    = document.getElementById('tableWrap');
+
+  if (!rows.length) { wrap.innerHTML = '<div class="loading">No data for selected site</div>'; return; }
+
+  const headers = ['Timestamp', 'Site', ...sensors];
+  let html = `<table><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr>`;
+  rows.forEach(row => {
+    html += `<tr>
+      <td>${row['Device Time']||row['Timestamp']}</td>
+      <td><span class="badge">${row['Site']}</span></td>
+      ${sensors.map(s => {
+        const val = parseFloat(row[s]);
+        return `<td>${isNaN(val)?'--':val.toFixed(1)}</td>`;
+      }).join('')}
+    </tr>`;
+  });
+  html += '</table>';
+  wrap.innerHTML = html;
+}
+
+// ── Helpers ──────────────────────────────────────────────────────
+function showLoading(v) { document.getElementById('loadingBox').style.display = v?'block':'none'; }
+function showError(msg) { const e=document.getElementById('errorBox'); e.textContent=msg; e.style.display='block'; }
+function hideError() { document.getElementById('errorBox').style.display='none'; }
+
+// ── Auto-refresh every 60s ───────────────────────────────────────
+setInterval(() => {
+  if (document.getElementById('sheetId').value.trim()) loadData();
+}, 60000);
+
+// ── Restore saved sheet ID ───────────────────────────────────────
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('gridmats_sheet_id');
+  if (saved) {
+    document.getElementById('sheetId').value = saved;
+    loadData();
+  }
+});
+</script>
+</body>
+</html>
