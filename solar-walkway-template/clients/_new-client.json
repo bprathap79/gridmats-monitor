@@ -14,6 +14,8 @@
   "tariff_escalation": 0.03,
   "shading_loss": 0.05,
   "build_type": "New walkway",
+  "soil_cbr": 6.0,
+  "soil_cbr_note": "Placeholder: replace with the soaked CBR from the site's soil test. Under 8 uses 100 mm WMM; 8 or more uses 50 mm.",
   "pilot_length_m": 10.0,
   "pilot_width_m": 2.0,
   "phase2_area": 200,
@@ -49,6 +51,7 @@
     "A sunny 10-14 m stretch of walkway, about 2 m wide, with little shade from 9 am to 4 pm",
     "A low-voltage connection point within about 30 m",
     "Permission for a 2-3 day installation window and a safety induction",
+    "A soaked CBR test of the subgrade at the pilot stretch (done at the site walk, one test per 25 m²)",
     "A facilities contact for monthly readings and the 3-month review"
   ],
   "deck_tagline": "A pilot walkway that generates power on your campus"

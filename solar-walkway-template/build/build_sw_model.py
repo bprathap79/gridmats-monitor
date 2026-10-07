@@ -47,6 +47,7 @@ cover = wb.active
 cover.title = "Cover"
 cl = wb.create_sheet("Client")
 pc = wb.create_sheet("Product & Costs")
+cb = wb.create_sheet("Cost Build-up")
 mt = wb.create_sheet("Module Tech")
 irr = wb.create_sheet("Irradiance")
 en = wb.create_sheet("Energy")
@@ -59,7 +60,7 @@ sc = wb.create_sheet("Scale-up")
 card = wb.create_sheet("Scorecard")
 src = wb.create_sheet("Sources & Notes")
 for w in wb.worksheets:
-    w.sheet_properties.tabColor = {"Cover": "C22935", "Client": "FFC000", "Product & Costs": "FFC000", "Module Tech": "FFC000", "Pilot BoQ": "C22935"}.get(w.title, "1F2A33")
+    w.sheet_properties.tabColor = {"Cover": "C22935", "Client": "FFC000", "Product & Costs": "FFC000", "Module Tech": "FFC000", "Pilot BoQ": "C22935", "Cost Build-up": "7F7F7F"}.get(w.title, "1F2A33")
 
 
 # ---------------------------------------------------------------- generic input-table writer
@@ -127,6 +128,7 @@ t.sec("3. Pilot and rollout size")
 t.add("BuildType", "Build type", "choice", CFG["build_type"], None,
       "'New walkway' builds the base and credits the paver walkway it replaces; 'Overlay on existing paving' levels the existing path and adds edge ramps.",
       dv='"New walkway,Overlay on existing paving"')
+t.add("SoilCBR", "Soil strength under the walkway: soaked CBR", "%", CFG["soil_cbr"], FMT_NUM1, CFG["soil_cbr_note"], key=True)
 t.add("PilotL", "Pilot walkway length", "m", CFG["pilot_length_m"], FMT_NUM1, "Pilots are 20-25 m².", key=True)
 t.add("PilotW", "Pilot walkway width", "m", CFG["pilot_width_m"], FMT_NUM1, "", key=True)
 t.add("PilotArea", "Pilot area", "m²", "=PilotL*PilotW", FMT_NUM1, "Length × width.")
@@ -198,25 +200,27 @@ t.add("Life", "Analysis horizon and module life", "years", 20, FMT_NUM, "Earlier
 t.add("InvRepl", "Inverter replacement", "₹ / kWp", 4000, FMT_INR, "Assumption.")
 t.add("InvYear", "Inverter replacement year", "year", 12, FMT_NUM, "Assumption.")
 t.add("OMPct", "Annual O&M (cleaning, inspection, minor repairs)", "% of capex / yr", 0.015, FMT_PCT, "Earlier ROI model.")
-t.sec("3. Prices and costs (ex-GST)")
-t.add("PVPilot", "Walkable PV layer, pilot price (12 mm toughened glass, 40 W module, MLP lumber with wiring)", "₹ / m²", 9500, FMT_INR,
-      "GridMats pilot quote (Oct 2026): ₹9,500/m² = ₹883/sq ft. Earlier ROI model's input cell used ₹2,500/m², but its own benchmark sheet and the proposal letter say ₹9,500.", key=True)
-t.add("PVScale", "Walkable PV layer, rollout price", "₹ / m²", 8500, FMT_INR,
-      "GridMats financials (Jul 2026): pricing range ₹8,000-9,000/m², midpoint ₹8,500 (= ₹790/sq ft).", key=True)
-t.add("ScaleFrom", "Rollout price applies from", "m²", 500, FMT_NUM, "Assumption.")
-t.add("MLPExtra", "MLP lumber layer, if priced separately", "₹ / m²", 0, FMT_INR, "0 when included in the PV layer. Apr 2025 calculator priced MLP at ₹150-650/m².")
-t.add("GridT1", "GridMats OC-LW 40 base grid, under 1,000 m²", "₹ / m²", 690, FMT_INR, "GridMats price ladder (25 Sep 2026): ₹64/sq ft.")
+t.sec("3. Other prices and costs (ex-GST). PV-layer, electrical and labour prices are built up from actual unit costs on 'Cost Build-up'")
+t.add("ScaleFrom", "Rollout prices (volume cost-down, project management) apply from", "m²", 500, FMT_NUM, "Assumption.")
+t.add("GridT1", "GridMats OC-LW 40 base grid, under 1,000 m²", "₹ / m²", 690, FMT_INR, "GridMats published price ladder (25 Sep 2026): ₹64/sq ft. Cost is ₹125 per grid (₹500/m²): see 'Cost Build-up'.")
 t.add("GridT2", "GridMats OC-LW 40, 1,000-2,500 m²", "₹ / m²", 650, FMT_INR, "₹60/sq ft.")
 t.add("GridT3", "GridMats OC-LW 40, 2,500-5,000 m²", "₹ / m²", 620, FMT_INR, "₹58/sq ft.")
 t.add("GridT4", "GridMats OC-LW 40, 5,000 m² and above", "₹ / m²", 590, FMT_INR, "₹55/sq ft.")
-t.add("CivilNew", "New-walkway base works (subgrade, 100 mm open-graded GSB, 20 mm bedding, edges)", "₹ / m²", 268, FMT_INR,
-      "GridMats base table for pedestrian load; Design Engine 73 unit rates (60 + 160 + 36 + 12).")
+t.add("CBRLimit", "Soaked CBR below which the thicker WMM layer is used", "%", 8, FMT_NUM1, "GridMats base specification (7 Oct 2026): CBR under 8 → 100 mm WMM; 8 or more → 50 mm WMM, on well-compacted soil.")
+t.add("WMMThick", "Wet mix macadam (WMM) thickness used", "mm", "=IF(SoilCBR<CBRLimit,100,50)", FMT_NUM, "From the site's soaked CBR on 'Client'.")
+t.add("RateSubgrade", "Subgrade preparation: level, proof-roll and compact to 95-97% MDD", "₹ / m²", 60, FMT_INR, "Design Engine 73 unit rate.")
+t.add("RateGeo", "Geotextile fabric (non-woven, laid on the compacted subgrade)", "₹ / m²", 55, FMT_INR, "ASSUMPTION: supply and lay of 200 gsm non-woven geotextile, with overlaps. Confirm the local rate.", key=True)
+t.add("RateWMM", "Wet mix macadam, supplied, laid and rolled", "₹ / m³", 2000, FMT_INR, "ASSUMPTION: replaces the ₹1,600/m³ GSB rate in Design Engine 73. Confirm the local rate.", key=True)
+t.add("MsandThick", "M-sand bedding thickness", "mm", 20, FMT_NUM, "Design Engine 73 (20 mm bedding).")
+t.add("RateMsand", "M-sand bedding, supplied and screeded", "₹ / m³", 1800, FMT_INR, "Design Engine 73 unit rate (₹36/m² at 20 mm).")
+t.add("RateEdge", "Edge restraint", "₹ / m²", 12, FMT_INR, "Design Engine 73 unit rate.")
+t.add("CivilNew", "New-walkway base works: subgrade, geotextile, WMM, M-sand bedding, edges", "₹ / m²",
+      "=RateSubgrade+RateGeo+WMMThick/1000*RateWMM+MsandThick/1000*RateMsand+RateEdge", FMT_INR,
+      "Sum of the lines above: ₹363/m² on soft soil (100 mm WMM); ₹263/m² otherwise (50 mm WMM) at the rates shown.")
 t.add("CivilOverlay", "Overlay on existing paving (levelling, edge ramps)", "₹ / m²", 150, FMT_INR, "Assumption.")
-t.add("BOSWp", "Electrical BOS (inverter, cabling, combiner, protection)", "₹ / Wp", 8, FMT_INR2, "Earlier ROI model.")
 t.add("IntegLump", "Grid integration and metering, per connection point", "₹", 25000, FMT_INR, "Earlier ROI model (pilot scale).")
 t.add("ConnKWp", "kWp per connection point at rollout", "kWp", 50, FMT_NUM, "Assumption.")
 t.add("LogPct", "Logistics and freight", "% of hardware", 0.05, FMT_PCT, "Earlier ROI model.")
-t.add("InstallM2", "Installation labour", "₹ / m²", 300, FMT_INR, "Earlier ROI model. Built by teams GridMats trains.")
 t.add("ConvWalk", "Paver / concrete walkway it replaces (new build only)", "₹ / m²", 1200, FMT_INR, "Earlier ROI model: ₹800-1,500/m² range.")
 t.sec("4. Pilot services (valued; offered free in the pilot)")
 t.add("DesignLump", "Site assessment, shading study and engineering", "₹", 40000, FMT_INR, "Estimate of value.")
@@ -240,6 +244,178 @@ t.add("GSTRate", "GST on a solar walkway system (composite)", "%", 0.089, FMT_PC
 t.add("ADRate", "Accelerated depreciation on solar (WDV)", "%", 0.40, FMT_PCT, "Income-tax Act: 40% WDV.")
 t.add("GridEF", "India grid emission factor", "t CO2 / MWh", 0.710, FMT_NUM2, "CEA CO2 Baseline Database v21.0 (FY2024-25).")
 t.add("PlasticLW", "Recycled PP in the OC-LW 40 base", "kg / m²", 4.0, FMT_NUM1, "GridMats master data.")
+ws.freeze_panes = "A5"
+
+
+# ================================================================ COST BUILD-UP (GridMats internal)
+ws = cb
+title(ws, "Cost build-up: GridMats internal. Remove this sheet before sending the workbook to a client",
+      "Starts from GridMats' actual unit costs per 40 W piece, adds what those costs leave out, and builds the client price. Margin is shown on this sheet only.")
+widths(ws, {"A": 62, "B": 15, "C": 26, "D": 15, "E": 15, "F": 15, "G": 90})
+header(ws, 4, ["Item", "Unit", "Value used", "Conservative", "Base", "Optimistic", "Source / note"])
+t = InputTable(ws, "Cost Build-up", 4)
+t.sec("1. GridMats actual material cost per 40 W piece (one piece on each 500 × 500 mm grid)")
+t.add("CostModule", "Solar module, 40 W (550 × 400 mm)", "₹ / piece", 1200, FMT_INR,
+      "GridMats actual cost (7 Oct 2026). Excludes margin, labour, wiring, inverter and management.", key=True)
+t.add("CostGlass", "12 mm toughened glass", "₹ / piece", 1600, FMT_INR, "GridMats actual cost (7 Oct 2026).", key=True)
+t.add("CostGrid", "GridMats OC-LW 40 base grid", "₹ / piece", 125, FMT_INR, "GridMats actual cost (7 Oct 2026). Sold at the published ladder price, not at cost-plus.", key=True)
+t.add("CostLumber", "MLP lumber (40 × 40 mm recycled)", "₹ / piece", 150, FMT_INR, "GridMats actual cost (7 Oct 2026).", key=True)
+t.add("MatPiece", "Material cost per piece", "₹ / piece", "=CostModule+CostGlass+CostGrid+CostLumber", FMT_INR, "Sum of the four lines above.")
+t.add("MatM2", "Material cost per m² of walkway", "₹ / m²", "=MatPiece*ModPerM2", FMT_INR, "Pieces per m² × material cost per piece.")
+t.add("MatSqft", "Material cost per sq ft", "₹ / sq ft", "=MatM2/10.7639", FMT_INR, "")
+t.add("MatWp", "Material cost per Wp", "₹ / Wp", "=MatPiece/ModW", FMT_INR2, "Rooftop solar is about ₹40/Wp all-in, so the walkway's material cost alone is about twice that.")
+t.sec("2. Not in the material cost. ASSUMPTIONS to confirm before quoting")
+t.add("CostWiring", "DC wiring, connectors and earthing", "₹ / piece", 120, FMT_INR,
+      "ASSUMPTION: module leads, MC4 connectors, string cabling inside the lumber. About ₹3/Wp.", key=True)
+t.add("CostInv", "Inverter, combiner, protection and metering", "₹ / Wp", 5.0, FMT_INR2,
+      "ASSUMPTION. Wiring ₹3 + inverter ₹5 = ₹8/Wp, the earlier ROI model's whole electrical BOS.", key=True)
+t.add("CostLabour", "Assembly and installation labour", "₹ / piece", 150, FMT_INR,
+      "ASSUMPTION: bonding or fixing the glass, placing in the lumber, wiring, laying, commissioning. ₹600/m² against ₹300/m² in the earlier ROI model.", key=True)
+t.add("MgmtPct", "Project management, QA and overhead at rollout", "% of direct cost", 0.08, FMT_PCT,
+      "ASSUMPTION. Applied to the PV layer, electrical and labour at rollout. In the pilot these are the valued service lines in section 4 of 'Product & Costs'.", key=True)
+t.add("MarginPct", "GridMats gross margin", "% of selling price", 0.25, FMT_PCT,
+      "ASSUMPTION. The OC-LW 40 ladder price of ₹690/m² against ₹500 cost implies 27.5% on the base grid.", key=True)
+t.add("VolDown", "Cost-down on module, glass and lumber at rollout volume", "% of today's cost", (0.0, 0.10, 0.20), FMT_PCT,
+      "ASSUMPTION. Today's costs are pilot-lot costs. Conservative: none. Applies from the rollout threshold on 'Product & Costs'.", key=True)
+t.add("GridMargin", "Margin the ladder price earns on the base grid (check)", "%", "=1-CostGrid*ModPerM2/GridT1", FMT_PCT, "1 − cost ÷ ladder price (under 1,000 m²).")
+t.sec("3. Price factors and the PV-layer, electrical and labour prices that feed the model")
+t.add("PFPilot", "Price factor, pilot: cost → price", "×", "=1/(1-MarginPct)", '0.000', "Price = cost ÷ (1 − margin).")
+t.add("PFRoll", "Price factor, rollout: cost → price", "×", "=(1+MgmtPct)/(1-MarginPct)", '0.000', "Price = cost × (1 + management) ÷ (1 − margin).")
+t.add("IsScale", "Rollout area is at or above the volume threshold (1 = yes)", "flag", "=IF(RO_Area>=ScaleFrom,1,0)", FMT_NUM, "Threshold on 'Product & Costs'.")
+t.add("VDEff", "Volume cost-down applied at the rollout area", "%", "=VolDown*IsScale", FMT_PCT, "")
+t.add("PFEff", "Price factor applied at the rollout area", "×", "=IF(IsScale=1,PFRoll,PFPilot)", '0.000', "")
+t.add("PVMGPilot", "PV layer, pilot: modules + glass price", "₹ / m²", "=(CostModule+CostGlass)*ModPerM2*PFPilot", FMT_INR, "Feeds 'Pilot BoQ'.")
+t.add("PVLWPilot", "PV layer, pilot: MLP lumber + wiring price", "₹ / m²", "=(CostLumber+CostWiring)*ModPerM2*PFPilot", FMT_INR, "Feeds 'Pilot BoQ'.")
+t.add("PVPilot", "PV layer, pilot price", "₹ / m²", "=PVMGPilot+PVLWPilot", FMT_INR, "Module, glass, lumber and wiring.")
+t.add("PVScale", "PV layer, rollout price", "₹ / m²", "=((CostModule+CostGlass+CostLumber)*(1-VolDown)+CostWiring)*ModPerM2*PFRoll", FMT_INR, "After the volume cost-down and management.")
+t.add("BOSPilot", "Electrical, pilot price", "₹ / Wp", "=CostInv*PFPilot", FMT_INR2, "")
+t.add("BOSScale", "Electrical, rollout price", "₹ / Wp", "=CostInv*PFRoll", FMT_INR2, "")
+t.add("InstPilot", "Installation labour, pilot price", "₹ / m²", "=CostLabour*ModPerM2*PFPilot", FMT_INR, "")
+t.add("InstScale", "Installation labour, rollout price", "₹ / m²", "=CostLabour*ModPerM2*PFRoll", FMT_INR, "")
+t.add("PVPilotSqftCB", "PV layer, pilot price per sq ft", "₹ / sq ft", "=PVPilot/10.7639", FMT_INR, "₹ per sq ft first.")
+t.add("PVScaleSqft", "PV layer, rollout price per sq ft", "₹ / sq ft", "=PVScale/10.7639", FMT_INR, "")
+
+r = t.row + 1
+section(ws, r, "4. Where the money goes (₹ per m² of walkway): GridMats cost against client price", ncols=7)
+header(ws, r + 1, ["Component", "Unit", "Pilot: cost", "Pilot: price", "Rollout: cost", "Rollout: price", "Note"])
+cb_rows = [
+    ("Solar module", "CostModule*ModPerM2", "CostModule*ModPerM2*(1-VDEff)", "PF", "Priced with the PV layer."),
+    ("12 mm toughened glass", "CostGlass*ModPerM2", "CostGlass*ModPerM2*(1-VDEff)", "PF", ""),
+    ("MLP lumber", "CostLumber*ModPerM2", "CostLumber*ModPerM2*(1-VDEff)", "PF", ""),
+    ("DC wiring and connectors", "CostWiring*ModPerM2", "CostWiring*ModPerM2", "PF", ""),
+    ("GridMats OC-LW 40 base grid", "CostGrid*ModPerM2", "CostGrid*ModPerM2", "GRID", "Sold at the published ladder price."),
+    ("Inverter, combiner, protection", "CostInv*PowerDens", "CostInv*PowerDens", "PF", ""),
+    ("Installation labour", "CostLabour*ModPerM2", "CostLabour*ModPerM2", "PF", ""),
+    ("Base works (subgrade, geotextile, WMM, M-sand bedding, edges)", "IF(BuildType=\"New walkway\",CivilNew,CivilOverlay)", "IF(BuildType=\"New walkway\",CivilNew,CivilOverlay)", "PASS", "Passed through at cost. WMM thickness follows the site CBR."),
+    ("Logistics and freight", "LOG", "LOG", "LOGP", "% of hardware, on cost for the cost columns and on price for the price columns."),
+    ("Grid integration and metering", "IntegLump/PilotArea", "RO_Integ", "PASS", "Passed through at cost."),
+    ("Project management and overhead", "0", "MgmtPct*IsScale*(E{a}+E{b}+E{c}+E{d}+E{f}+E{g})", "MGMT", "Rollout only; in the pilot it is the valued service lines. Included in the rollout prices above."),
+]
+r0 = r + 2
+for i, (lab, pc_, rc_, kind, nt) in enumerate(cb_rows):
+    rr = r0 + i
+    put(ws, f"A{rr}", lab, kind="label")
+    put(ws, f"B{rr}", "₹ / m²", kind="note")
+    note(ws, f"G{rr}", nt)
+rowof = {i: r0 + i for i in range(len(cb_rows))}
+for i, (lab, pc_, rc_, kind, nt) in enumerate(cb_rows):
+    rr = rowof[i]
+    hw_idx = [0, 1, 2, 3, 4, 5, 7]
+    if pc_ == "LOG":
+        pc_ = "LogPct*(" + "+".join(f"C{rowof[k]}" for k in hw_idx) + ")"
+        rc_ = "LogPct*(" + "+".join(f"E{rowof[k]}" for k in hw_idx) + ")"
+    if kind == "MGMT":
+        rc_ = "MgmtPct*IsScale*(" + "+".join(f"E{rowof[k]}" for k in (0, 1, 2, 3, 5, 6)) + ")"
+    put(ws, f"C{rr}", "=" + pc_, FMT_INR)
+    put(ws, f"E{rr}", "=" + rc_, FMT_INR)
+    if kind == "PF":
+        put(ws, f"D{rr}", f"=C{rr}*PFPilot", FMT_INR)
+        put(ws, f"F{rr}", f"=E{rr}*PFEff", FMT_INR)
+    elif kind == "GRID":
+        put(ws, f"D{rr}", "=GridT1", FMT_INR)
+        put(ws, f"F{rr}", "=RO_Grid", FMT_INR)
+    elif kind == "PASS":
+        put(ws, f"D{rr}", f"=C{rr}", FMT_INR)
+        put(ws, f"F{rr}", f"=E{rr}", FMT_INR)
+    elif kind == "LOGP":
+        put(ws, f"D{rr}", "=LogPct*(" + "+".join(f"D{rowof[k]}" for k in hw_idx) + ")", FMT_INR)
+        put(ws, f"F{rr}", "=RO_Log", FMT_INR)
+    elif kind == "MGMT":
+        put(ws, f"D{rr}", 0, FMT_INR)
+        put(ws, f"F{rr}", 0, FMT_INR)
+rl = r0 + len(cb_rows) - 1
+rt = rl + 1
+put(ws, f"A{rt}", "Total per m²", kind="label", bold=True)
+for c in "CDEF":
+    put(ws, f"{c}{rt}", f"=SUM({c}{r0}:{c}{rl})", FMT_INR, bold=True)
+    ws[f"{c}{rt}"].border = TOP2
+rows_extra = [
+    ("GridMats margin (₹ / m²)", f"=D{rt}-C{rt}", f"=F{rt}-E{rt}", FMT_INR),
+    ("GridMats margin (% of price)", f"=(D{rt}-C{rt})/D{rt}", f"=(F{rt}-E{rt})/F{rt}", FMT_PCT),
+    ("Price per sq ft", f"=D{rt}/10.7639", f"=F{rt}/10.7639", FMT_INR),
+    ("Price per Wp (all-in, ex-services)", f"=D{rt}/PowerDens", f"=F{rt}/PowerDens", FMT_INR2),
+    ("Cost per Wp (GridMats)", f"=C{rt}/PowerDens", f"=E{rt}/PowerDens", FMT_INR2),
+]
+for i, (lab, fp, fr, fmt) in enumerate(rows_extra):
+    rr = rt + 1 + i
+    put(ws, f"A{rr}", lab, kind="label")
+    put(ws, f"D{rr}", fp, fmt)
+    put(ws, f"F{rr}", fr, fmt)
+dname("CB_CostPilotM2", "Cost Build-up", f"C{rt}")
+dname("CB_PricePilotM2", "Cost Build-up", f"D{rt}")
+dname("CB_CostRollM2", "Cost Build-up", f"E{rt}")
+dname("CB_PriceRollM2", "Cost Build-up", f"F{rt}")
+dname("CB_MarginPilotPct", "Cost Build-up", f"D{rt+2}")
+dname("CB_MarginRollPct", "Cost Build-up", f"F{rt+2}")
+chk = rt + 1 + len(rows_extra)
+put(ws, f"A{chk}", "Check: price columns agree with 'Pilot BoQ' and 'Rollout Economics'", kind="label")
+put(ws, f"D{chk}", f"=IF(AND(ABS(D{rt}-PilotPhysM2)<1,ABS(F{rt}-RO_CostM2)<1),\"OK\",\"CHECK\")", None, bold=True, align="center")
+
+r = chk + 2
+section(ws, r, "5. GridMats' own money in the pilot", ncols=7)
+gm = [
+    ("Hardware and installation at GridMats cost (₹)", "=CB_CostPilotM2*PilotArea", FMT_INR, "GM_PilotCost"),
+    ("Valued services given free: design, supervision, travel, IoT (₹)", "=PilotList-PilotPhys", FMT_INR, "GM_PilotServices"),
+    ("Total pilot cost to GridMats (₹)", "=GM_PilotCost+GM_PilotServices", FMT_INR, "GM_PilotTotal"),
+    ("Client pays, ex-GST (₹)", "=PilotPays", FMT_INR, None),
+    ("GridMats' net investment in the pilot (₹)", "=GM_PilotTotal-PilotPays", FMT_INR, "GM_PilotNet"),
+]
+for i, (lab, f, fmt, nm) in enumerate(gm):
+    rr = r + 1 + i
+    put(ws, f"A{rr}", lab, kind="label", bold=nm == "GM_PilotNet")
+    put(ws, f"D{rr}", f, fmt, bold=nm == "GM_PilotNet")
+    if nm:
+        dname(nm, "Cost Build-up", f"D{rr}")
+r = r + len(gm) + 2
+
+section(ws, r, "6. What it takes for the campus rollout to pay back", ncols=7)
+t.row = r + 1
+t.add("TargetPB", "Target payback for this view", "years", 6, FMT_NUM1, "ASSUMPTION: a common corporate hurdle for green capex. Change to the client's.", key=True)
+t.add("BE_Save", "Year-1 electricity saving per m² of walkway", "₹ / m²", "=PowerDens/1000*SpecYield*Tariff", FMT_INR, "Rated power × specific yield × tariff.")
+t.add("BE_Price", "Highest installed price that meets the target, net of the paver credit", "₹ / m²", "=(TargetPB*BE_Save+RO_Credit)/(1+TargetPB*OMPct)", FMT_INR, "Solves (price − credit) ÷ (saving − O&M × price) = target payback.")
+t.add("BE_Now", "Rollout installed price now", "₹ / m²", "=RO_CostM2", FMT_INR, "From 'Rollout Economics'.")
+t.add("BE_Gap", "Price reduction needed (negative = target already met)", "%", "=1-BE_Price/BE_Now", FMT_PCT, "")
+t.add("BE_PV", "PV-layer price that meets the target, other items unchanged", "₹ / m²", "=(BE_Price-RO_Integ-RO_Inst)/(1+LogPct)-RO_Civil-RO_Grid-RO_BOS", FMT_INR, "Backs the PV layer out of the installed price.")
+t.add("BE_Today", "Module + glass + lumber cost per piece today", "₹ / piece", "=CostModule+CostGlass+CostLumber", FMT_INR, "Before any volume cost-down.")
+t.add("BE_Piece", "Module + glass + lumber cost per piece that meets the target", "₹ / piece", "=MAX(0,((BE_PV/PFEff)/ModPerM2-CostWiring)/(1-VDEff))", FMT_INR,
+      "Holding wiring, electrical, labour, margin and management as assumed.")
+t.add("BE_Cut", "Cost reduction needed on module + glass + lumber", "%", "=1-BE_Piece/BE_Today", FMT_PCT, "")
+r = t.row + 1
+put(ws, f"A{r}", "Cost-down path: rollout price and payback as module, glass and lumber cost falls", kind="label", bold=True)
+header(ws, r + 1, ["Cost vs today (before volume cost-down)", "Per piece (₹)", "Rollout installed (₹/sq ft)", "Simple payback (yrs)", "Net of paver credit (₹/sq ft)"])
+for i, k in enumerate([1.0, 0.9, 0.8, 0.7, 0.6, 0.5]):
+    rr = r + 2 + i
+    put(ws, f"A{rr}", k, FMT_PCT, kind="input", bold=True, align="center")
+    put(ws, f"B{rr}", f"=BE_Today*A{rr}", FMT_INR)
+    newc = f"(RO_CostM2-(1-A{rr})*BE_Today*ModPerM2*(1-VDEff)*PFEff*(1+LogPct))"
+    put(ws, f"C{rr}", f"={newc}/10.7639", FMT_INR)
+    put(ws, f"D{rr}", f"=IFERROR(({newc}-RO_Credit)/(BE_Save-OMPct*{newc}),\"n/a\")", '0.0', align="center")
+    put(ws, f"E{rr}", f"=({newc}-RO_Credit)/10.7639", FMT_INR)
+rng = f"D{r+2}:D{r+7}"
+from openpyxl.formatting.rule import CellIsRule as _CIR
+ws.conditional_formatting.add(rng, _CIR(operator="lessThanOrEqual", formula=["6"], fill=PatternFill("solid", fgColor="E3F1E6")))
+ws.conditional_formatting.add(rng, _CIR(operator="between", formula=["6.0001", "9"], fill=PatternFill("solid", fgColor="FFF4D6")))
+ws.conditional_formatting.add(rng, _CIR(operator="greaterThan", formula=["9"], fill=PatternFill("solid", fgColor="FBEAEC")))
 ws.freeze_panes = "A5"
 
 # ================================================================ IRRADIANCE
@@ -389,15 +565,15 @@ widths(ws, {"A": 62, "B": 11, "C": 9, "D": 13, "E": 14, "F": 15, "G": 15, "H": 4
 header(ws, 4, ["Item", "Qty", "Unit", "Rate (₹)", "List value (₹)", "GridMats contributes (₹)", "Client pays (₹)", "Note"])
 items = [
     ("Site assessment, shading study and engineering design", "1", "lot", "=DesignLump", "=E{r}", "Included", "svc"),
-    ("Base works: new walkway (subgrade, open-graded GSB, bedding, edges) or overlay levelling and ramps", "=PilotArea", "m²",
+    ("=IF(BuildType=\"New walkway\",\"Base works: compacted subgrade, geotextile, \"&WMMThick&\" mm WMM, \"&MsandThick&\" mm M-sand bedding, edges\",\"Base works: overlay levelling and edge ramps\")", "=PilotArea", "m²",
      "=IF(BuildType=\"New walkway\",CivilNew,CivilOverlay)", "0", "", "hw"),
     ("GridMats OC-LW 40 structural base (100% recycled PP), 4 grids per m²", "=PilotArea", "m²", "=GridT1", "0", "", "hw"),
-    ("Walkable PV layer: 40 W modules, 12 mm toughened glass, MLP lumber with wiring", "=PilotArea", "m²", "=PVPilot", "=E{r}*CoFund", "Co-funded by GridMats", "hw"),
-    ("MLP lumber layer (only if priced separately)", "=PilotArea", "m²", "=MLPExtra", "0", "", "hw"),
-    ("Electrical BOS: inverter, DC/AC cabling, protection, earthing", "=PilotKWp*1000", "Wp", "=BOSWp", "0", "", "hw"),
+    ("Walkable PV layer: 40 W solar modules under 12 mm toughened glass, 4 per m²", "=PilotArea", "m²", "=PVMGPilot", "=E{r}*CoFund", "Co-funded by GridMats", "hw"),
+    ("MLP lumber frame (40 × 40 mm) and module wiring", "=PilotArea", "m²", "=PVLWPilot", "=E{r}*CoFund", "Co-funded by GridMats", "hw"),
+    ("Electrical: inverter, DC/AC cabling, protection, earthing", "=PilotKWp*1000", "Wp", "=BOSPilot", "0", "", "hw"),
     ("Logistics and freight", "=SUM(E6:E10)", "₹", "=LogPct", "0", "% of hardware", "log"),
     ("Grid integration and metering", "1", "lot", "=IntegLump", "0", "", "fix"),
-    ("Installation labour", "=PilotArea", "m²", "=InstallM2", "0", "Built by teams GridMats trains", "fix"),
+    ("Installation labour", "=PilotArea", "m²", "=InstPilot", "0", "Built by teams GridMats trains", "fix"),
     ("GridMats supervision and training on site", "=SupDays", "days", "=ManDay", "=E{r}", "Included", "svc"),
     ("Supervisor travel and stay", "1", "lot", "=TravelLump", "=E{r}", "Included", "svc"),
     ("IoT sensors, live dashboard and performance study", "1", "lot", "=IoTPkg", "=E{r}", "Included", "svc"),
@@ -536,11 +712,11 @@ ro_rows = [
     ("Rated power (kWp)", "=RO_Area*PowerDens/1000", FMT_NUM1, "RO_KWp"),
     ("Base works (₹/m²)", "=IF(BuildType=\"New walkway\",CivilNew,CivilOverlay)", FMT_INR, "RO_Civil"),
     ("GridMats OC-LW 40 at this area (₹/m²)", "=IF(RO_Area<1000,GridT1,IF(RO_Area<2500,GridT2,IF(RO_Area<5000,GridT3,GridT4)))", FMT_INR, "RO_Grid"),
-    ("Walkable PV layer (₹/m²)", "=IF(RO_Area>=ScaleFrom,PVScale,PVPilot)+MLPExtra", FMT_INR, "RO_PV"),
-    ("Electrical BOS (₹/m²)", "=BOSWp*PowerDens", FMT_INR, "RO_BOS"),
+    ("Walkable PV layer (₹/m²)", "=IF(RO_Area>=ScaleFrom,PVScale,PVPilot)", FMT_INR, "RO_PV"),
+    ("Electrical BOS (₹/m²)", "=IF(RO_Area>=ScaleFrom,BOSScale,BOSPilot)*PowerDens", FMT_INR, "RO_BOS"),
     ("Logistics (₹/m²)", "=LogPct*(RO_Civil+RO_Grid+RO_PV+RO_BOS)", FMT_INR, "RO_Log"),
     ("Grid integration (₹/m²)", "=ROUNDUP(RO_KWp/ConnKWp,0)*IntegLump/RO_Area", FMT_INR, "RO_Integ"),
-    ("Installation (₹/m²)", "=InstallM2", FMT_INR, "RO_Inst"),
+    ("Installation (₹/m²)", "=IF(RO_Area>=ScaleFrom,InstScale,InstPilot)", FMT_INR, "RO_Inst"),
     ("Installed cost (₹/m²)", "=SUM(H7:H13)", FMT_INR, "RO_CostM2"),
     ("Installed cost (₹/sq ft)", "=RO_CostM2/10.7639", FMT_INR, "RO_CostSqft"),
     ("Less: walkway it replaces (₹/m², new build only)", "=IF(BuildType=\"New walkway\",ConvWalk,0)", FMT_INR, "RO_Credit"),
@@ -661,9 +837,9 @@ def grid(r0, title_txt, row_label, row_vals, row_fmt, col_label, col_vals, col_f
 net_saving = "(PowerDens/1000*SunYear*{pr}*(1-ShadeLoss)*{tar}-OMPct*RO_CostM2)"
 g1 = grid(4, "Power price × performance ratio", "₹ / kWh", [8, 9, 10, 11, 12, 13, 14], FMT_INR2, "Performance ratio",
           [0.60, 0.65, 0.70, 0.75, 0.80], FMT_PCT, "RO_NetM2/" + net_saving.format(pr="{col}", tar="{row}"), "S1")
-g2 = grid(15, "Power price × rollout PV-layer price (₹/m²)", "₹ / kWh", [8, 9, 10, 11, 12, 13, 14], FMT_INR2, "PV layer ₹/m²",
-          [6500, 7500, 8500, 9500], FMT_INR,
-          "(RO_NetM2-RO_PV+{col}+LogPct*({col}-RO_PV))/(PowerDens/1000*SunYear*PR*(1-ShadeLoss)*{row}-OMPct*(RO_CostM2-RO_PV+{col}))", "S2")
+g2 = grid(15, "Power price × change in the rollout PV-layer price", "₹ / kWh", [8, 9, 10, 11, 12, 13, 14], FMT_INR2, "PV-layer price change",
+          [-0.4, -0.3, -0.2, -0.1, 0.0], '0%',
+          "(RO_NetM2+RO_PV*{col}*(1+LogPct))/(PowerDens/1000*SunYear*PR*(1-ShadeLoss)*{row}-OMPct*(RO_CostM2+RO_PV*{col}*(1+LogPct)))", "S2")
 section(ws, 26, "Pilot payback on the client's outlay × GridMats co-funding", ncols=6)
 put(ws, "A27", "Co-funding of the PV layer →", kind="label", bold=True)
 cof = [0, 0.25, 0.5, 0.75]
@@ -674,7 +850,7 @@ for j, v in enumerate(cof):
 put(ws, "A28", "Simple payback (years)", kind="label")
 note(ws, "A30", "Shading: green ≤ 6 years, amber 6-9 years, red above 9 years (applied in Excel with conditional formatting).")
 from openpyxl.formatting.rule import CellIsRule
-for rng in (f"B{g1[0]}:F{g1[1]}", f"B{g2[0]}:E{g2[1]}", "B28:E28"):
+for rng in (f"B{g1[0]}:F{g1[1]}", f"B{g2[0]}:F{g2[1]}", "B28:E28"):
     ws.conditional_formatting.add(rng, CellIsRule(operator="lessThanOrEqual", formula=["6"], fill=fill_good))
     ws.conditional_formatting.add(rng, CellIsRule(operator="between", formula=["6.0001", "9"], fill=fill_mid))
     ws.conditional_formatting.add(rng, CellIsRule(operator="greaterThan", formula=["9"], fill=fill_bad))
@@ -687,16 +863,19 @@ header(ws, 4, ["Measure", "Pilot", "Phase 2", "Campus", "Portfolio", "Note"])
 put(ws, "A5", "Area (m²)", kind="label", bold=True)
 for c, f in zip("BCDE", ["=PilotArea", "=Phase2Area", "=CampusArea", "=PortfolioArea"]):
     put(ws, f"{c}5", f, FMT_NUM, kind="link", bold=True)
+_civ = 'IF(BuildType="New walkway",CivilNew,CivilOverlay)'
+_grd = 'IF({c}5<1000,GridT1,IF({c}5<2500,GridT2,IF({c}5<5000,GridT3,GridT4)))'
+_pv = 'IF({c}5>=ScaleFrom,PVScale,PVPilot)'
+_bos = 'IF({c}5>=ScaleFrom,BOSScale,BOSPilot)*PowerDens'
+_inst = 'IF({c}5>=ScaleFrom,InstScale,InstPilot)'
+SC_COST = ("=" + _civ + "+" + _grd + "+" + _pv + "+" + _bos + "+LogPct*(" + _civ + "+" + _grd + "+" + _pv + "+" + _bos + ")"
+           "+ROUNDUP({c}6/ConnKWp,0)*IntegLump/{c}5+" + _inst)
 srows = [
     ("Rated power (kWp)", "={c}5*PowerDens/1000", FMT_NUM1),
     ("Generation, year 1 (MWh)", "={c}6*SpecYield/1000", FMT_NUM1),
     ("Electricity saved, year 1 (₹ lakh)", "={c}7*1000*Tariff/100000", FMT_NUM2),
     ("CO2 avoided per year (t)", "={c}7*GridEF", FMT_NUM1),
-    ("Installed cost per m² (₹)",
-     "=IF(BuildType=\"New walkway\",CivilNew,CivilOverlay)+IF({c}5<1000,GridT1,IF({c}5<2500,GridT2,IF({c}5<5000,GridT3,GridT4)))"
-     "+IF({c}5>=ScaleFrom,PVScale,PVPilot)+MLPExtra+BOSWp*PowerDens"
-     "+LogPct*(IF(BuildType=\"New walkway\",CivilNew,CivilOverlay)+IF({c}5<1000,GridT1,IF({c}5<2500,GridT2,IF({c}5<5000,GridT3,GridT4)))+IF({c}5>=ScaleFrom,PVScale,PVPilot)+MLPExtra+BOSWp*PowerDens)"
-     "+ROUNDUP({c}6/ConnKWp,0)*IntegLump/{c}5+InstallM2", FMT_INR),
+    ("Installed cost per m² (₹)", SC_COST, FMT_INR),
     ("Installed cost (₹ lakh)", "={c}10*{c}5/100000", FMT_NUM2),
     ("Net of walkway credit (₹ lakh)", "=({c}10-IF(BuildType=\"New walkway\",ConvWalk,0))*{c}5/100000", FMT_NUM2),
     ("Simple payback on full cost (years)", "={c}12/({c}8-OMPct*{c}11)", FMT_YRS),
@@ -756,9 +935,9 @@ section(ws, 4, "Changes from earlier GridMats Solar Walkway calculations", ncols
 header(ws, 5, ["Item", "Earlier value (file)", "This model", "Why"])
 changes = [
     ("Rated power of the walkway", "126 W/m² (ROI model: 580 × 450 mm, 82% coverage); 110 W/m² (2025 decks, flier to 6 Oct)", "160 W/m²", "MD correction, 6 Oct 2026: 40 W module on each grid, 4 per m²."),
-    ("PV layer price", "₹2,500/m² in the ROI model's input cell", "₹9,500/m² pilot; ₹8,500/m² rollout", "The ROI model's own benchmark sheet and the proposal letter state ₹9,500/m²; Jul 2026 financials give ₹8,000-9,000/m² for volume."),
-    ("Structural base", "GridMats HD ₹1,200/m² (ROI model)", "OC-LW 40 at ₹690/m² (under 1,000 m²)", "Current price ladder (25 Sep 2026); the module sits on the 500 × 500 mm grid."),
-    ("Performance ratio", "78%", "70% base (62-78%)", "Flat, walk-on modules run hotter and collect more dust than tilted rooftop panels."),
+    ("PV layer price", "₹2,500/m² (ROI model input cell); ₹9,500/m² quote; ₹8,000-9,000/m² range (Jul 2026)", "Built up from actual unit costs", "GridMats' actual material cost is ₹3,075 per 40 W piece (₹12,300/m²), above the old ₹9,500/m² quote. Price now = cost + wiring, inverter, labour, management and margin ('Cost Build-up')."),
+    ("Structural base", "GridMats HD ₹1,200/m² (ROI model)", "OC-LW 40 at ₹690/m² (under 1,000 m²)", "Published price ladder (25 Sep 2026); actual cost ₹125 per grid (₹500/m²). The module sits on the 500 × 500 mm grid."),
+    ("Performance ratio", "78%", "About 73% base (seven-loss stack)", "Flat, walk-on modules run hotter and collect more dust than tilted rooftop panels."),
     ("GST", "13.8% composite", "8.9% composite (confirm)", "GST on solar goods cut from 12% to 5% from 22 Sep 2025."),
     ("Power price", "₹9/kWh placeholder", "Client sheet", "Use the landed rate from the site's electricity bill."),
     ("Cost calculator (Apr 2025)", "₹6,540-7,800/m² at 80-111 W/m²; ₹70-84/W", "Superseded", "Lower power density and older module; kept for reference."),
@@ -776,6 +955,7 @@ sources = [
     ("GridMats Solar Walkway Client/Partner Deck v2", "Construction (PV layer, 40 × 40 mm MLP lumber, GridMats base), 550 × 400 mm module, pilot pathway."),
     ("GridMats Solar Walkway ROI Comparison Model (Reliance / Jio R&D pilot)", "Cost stack, rooftop and carport benchmarks, O&M, pilot objectives and scorecard."),
     ("GridMats Solar cost calculator (Apr 2025)", "Earlier module, MLP and labour costs; superseded."),
+    ("GridMats actual unit costs per 40 W piece (7 Oct 2026)", "Module ₹1,200, glass ₹1,600, GridMats grid ₹125, MLP lumber ₹150. Excludes margin, labour, wiring, inverter and management."),
     ("GridMats price ladder (25 Sep 2026); Design Engine 73 unit rates", "OC-LW 40 prices; base-works rates."),
     ("GridMats financials (Jul 2026)", "Solar walkway pricing range ₹8,000-9,000/m²."),
     ("CEA CO2 Baseline Database v21.0", "Grid emission factor 0.710 t CO2/MWh."),
@@ -834,7 +1014,7 @@ r += 1
 section(ws, r, "How to use this template", ncols=4, col=2)
 how = [
     "For a new client, change the yellow cells on 'Client' (or build from clients/<id>.json with build/build.sh). Nothing else needs editing.",
-    "GridMats product prices and assumptions sit on 'Product & Costs'; change them only when the price list or design basis changes.",
+    "GridMats product prices and assumptions sit on 'Product & Costs'. Unit costs, margin and the cost-plus price build-up sit on 'Cost Build-up': internal, remove before sending to a client.",
     "Pick the sunshine profile on 'Client'; replace the city row on 'Irradiance' with site data after the site assessment.",
     "Blue = input · yellow fill = key assumption to confirm · black = formula · green = link to another sheet.",
     "All money in ₹, ex-GST unless stated. The Solar Walkway is pre-commercial: yield, life and upkeep are estimates the pilot measures.",

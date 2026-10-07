@@ -28,8 +28,8 @@ for r in range(5, 17):
 ws = wb["Sensitivity"]
 d["sens_pr"] = {"cols": [ws.cell(row=5, column=c).value for c in range(2, 7)],
                 "rows": [[ws.cell(row=r, column=c).value for c in range(1, 7)] for r in range(6, 13)]}
-d["sens_price"] = {"cols": [ws.cell(row=16, column=c).value for c in range(2, 6)],
-                   "rows": [[ws.cell(row=r, column=c).value for c in range(1, 6)] for r in range(17, 24)]}
+d["sens_price"] = {"cols": [ws.cell(row=16, column=c).value for c in range(2, 7)],
+                   "rows": [[ws.cell(row=r, column=c).value for c in range(1, 7)] for r in range(17, 24)]}
 d["sens_cofund"] = {"cols": [ws.cell(row=27, column=c).value for c in range(2, 6)],
                     "vals": [ws.cell(row=28, column=c).value for c in range(2, 6)]}
 

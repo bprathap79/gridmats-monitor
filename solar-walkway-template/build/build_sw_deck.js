@@ -152,8 +152,8 @@ async function main() {
   const pts = [
     ["What", `${inr(area)} m² GridMats Solar Walkway: ${inr(O.PilotModules)} walkable 40 W modules on a recycled-plastic GridMats base, ${kwp.toFixed(1)} kWp in all.`],
     ["Output", `About ${inr(Math.round(kwh / 10) * 10)} kWh a year (${O.PilotKWhDay.toFixed(1)} kWh a day on average), metered and sensed from day one.`],
-    ["Cost", `${client} pays ${lakh(O.PilotPays)} ex-GST (₹${inr(O.PilotPaysSqft)}/sq ft). GridMats contributes ${lakh(O.PilotContrib)}: design, half the PV layer, supervision and the performance study.`],
-    ["Decision", `${CFG.evaluation_months}-month evaluation against an agreed scorecard, monitoring for ${CFG.monitoring_months} months. At campus scale (${inr(O.RO_Area)} m²) the model shows a ${O.RO_Payback.toFixed(1)}-year payback.`],
+    ["Cost", `${client} pays ${lakh(O.PilotPays)} ex-GST (₹${inr(O.PilotPaysSqft)}/sq ft). GridMats contributes ${lakh(O.PilotContrib)}: design, ${pct(CFG.cofund)} of the PV layer, supervision, IoT study.`],
+    ["Decision", `${CFG.evaluation_months}-month evaluation against an agreed scorecard, monitoring for ${CFG.monitoring_months} months. At campus scale (${inr(O.RO_Area)} m²) the model shows a ${O.RO_Payback.toFixed(1)}-year payback at today's prices.`],
   ];
   for (let i = 0; i < pts.length; i++) {
     const y = 1.8 + i * 1.2;
@@ -170,7 +170,7 @@ async function main() {
     text(s, g[1], { x, y: y + 0.6, w: 1.85, h: 0.75, fontSize: 12, color: C.background2 });
   });
   source(s, "All figures from the companion model (base case). Money ex-GST. The GridMats Solar Walkway is pre-commercial; yield, life and upkeep are estimates the pilot measures.");
-  s.addNotes(`Four lines and one ask. The ask: a ${inr(area)} m² pilot for which ${client} pays about ${lakh(O.PilotPays)} ex-GST, with GridMats carrying design, half the PV layer, supervision and a ${CFG.monitoring_months}-month performance study.`);
+  s.addNotes(`Four lines and one ask. The ask: a ${inr(area)} m² pilot for which ${client} pays about ${lakh(O.PilotPays)} ex-GST, with GridMats carrying design, ${pct(CFG.cofund)} of the PV layer, supervision and a ${CFG.monitoring_months}-month performance study.`);
 
   // ============================================================ 3. WHY
   s = content("Proposal", `Why a walkway at ${client}`, "Every paved surface can do more: use it, build it from recycled plastic, and make power on it.");
@@ -193,23 +193,24 @@ async function main() {
   // ============================================================ 4. WHAT IT IS
   pres.addSection({ title: "Technology" });
   s = content("Technology", "What it is", "A modular surface that carries people and produces electricity.");
-  s.addImage({ path: asset("exploded_layers.jpg"), x: MX, y: 1.75, w: 6.3, h: 3.55, sizing: { type: "cover", w: 6.3, h: 3.55 }, altText: "Exploded view: PV module, MLP lumber, GridMats base on aggregate" });
+  s.addImage({ path: asset("exploded_layers.jpg"), x: MX, y: 1.75, w: 6.3, h: 3.55, sizing: { type: "cover", w: 6.3, h: 3.55 }, altText: "Exploded view: PV module, MLP lumber, GridMats base on prepared ground" });
   text(s, "Concept visualization", { x: MX, y: 5.35, w: 6.3, h: 0.25, fontSize: 10, italic: true, color: C.accent4, align: "right" });
   const layers = [["PV", C.accent6, "1. Walkable photovoltaic layer", "12 mm toughened glass over a 40 W module; modular, so one module can be replaced without lifting the walkway."],
     ["DC", "B87503", "2. MLP lumber electrical layer", "40 × 40 mm recycled MLP lumber carries the wiring, with about 50 mm open gaps for airflow and drainage."],
-    ["GM", C.accent1, "3. Patented GridMats structural base", "100% recycled polypropylene grid (500 × 500 mm, 4 per m²) gives confinement, stability and a level bed."]];
+    ["GM", C.accent1, "3. Patented GridMats structural base", "100% recycled polypropylene grid (500 × 500 mm, 4 per m²) gives confinement, stability and a level bed."],
+    ["GP", C.text2, "4. Prepared ground", `Well-compacted subgrade, geotextile fabric, ${O.WMMThick} mm wet mix macadam and 20 mm M-sand bedding (${O.WMMThick === 100 ? "soil CBR under 8" : "soil CBR 8 or more: 50 mm WMM"}).`]];
   for (let i = 0; i < layers.length; i++) {
-    const y = 1.75 + i * 1.22;
-    card(s, 7.2, y, 5.53, 1.08, C.background1, "layer-card");
-    badge(s, layers[i][0], 7.4, y + 0.24, 0.6, layers[i][1]);
-    text(s, layers[i][2], { x: 8.2, y: y + 0.12, w: 4.4, h: 0.32, fontSize: 15, bold: true });
-    text(s, layers[i][3], { x: 8.2, y: y + 0.45, w: 4.4, h: 0.6, fontSize: 12, color: C.text2 });
+    const y = 1.75 + i * 0.99;
+    card(s, 7.2, y, 5.53, 0.9, C.background1, "layer-card");
+    badge(s, layers[i][0], 7.38, y + 0.18, 0.54, layers[i][1]);
+    text(s, layers[i][2], { x: 8.1, y: y + 0.07, w: 4.55, h: 0.28, fontSize: 14, bold: true });
+    text(s, layers[i][3], { x: 8.1, y: y + 0.35, w: 4.55, h: 0.52, fontSize: 11, color: C.text2 });
   }
   card(s, MX, 5.75, CW, 0.7, "E7F0E8", "basis-card");
   text(s, `Design basis:  40 W per 550 × 400 mm module  ·  4 modules per m²  ·  about ${inr(O.PowerDens)} W per m² of walkway  ·  15-16% surface efficiency  ·  no extra land or mounting`,
     { x: MX + 0.25, y: 5.75, w: CW - 0.5, h: 0.7, fontSize: 14, bold: true, color: C.text1, valign: "middle" });
   source(s, "GridMats Solar Walkway flier (6 Oct 2026) and Client/Partner Deck v2. Status: pre-commercial; pilot validation under way.");
-  s.addNotes("Three layers. Walkable PV on top, MLP lumber that carries the wiring and lets water and air through, and the patented GridMats base. Design basis about 160 W per square metre of walkway.");
+  s.addNotes("Three layers plus the ground beneath them. Walkable PV on top, MLP lumber that carries the wiring and lets water and air through, the patented GridMats base, and a prepared bed: compacted soil, geotextile, WMM and M-sand. The WMM is 100 mm where the soil CBR is under 8 and 50 mm otherwise, so the site soil test matters. Design basis about 160 W per square metre of walkway.");
 
   // ============================================================ 5. HOW IT WORKS + SAFETY
   s = content("Technology", "How it works, and how it stays safe", "A proven GridMats platform extended into distributed energy; safety is designed in and verified in the pilot.");
@@ -311,7 +312,7 @@ async function main() {
   s = content("Pilot", "What the pilot costs, and who pays", `List value of the pilot scope against what ${client} pays. Ex-GST; GST extra at the applicable rate.`);
   const b = D.boq;
   const grp = (idx) => idx.reduce((acc, i) => ({ list: acc.list + b[i].list, contrib: acc.contrib + b[i].contrib, pays: acc.pays + b[i].pays }), { list: 0, contrib: 0, pays: 0 });
-  const lines = [["Site assessment and engineering design", grp([0])], ["Base works and GridMats OC-LW 40 base", grp([1, 2])], [`Walkable PV layer (${inr(O.PilotModules)} × 40 W, MLP lumber, wiring)`, grp([3, 4])],
+  const lines = [["Site assessment and engineering design", grp([0])], ["Ground preparation and GridMats OC-LW 40 base", grp([1, 2])], [`Walkable PV layer (${inr(O.PilotModules)} × 40 W, MLP lumber, wiring)`, grp([3, 4])],
     ["Electrical BOS, grid integration and metering", grp([5, 7])], ["Logistics and installation", grp([6, 8])], ["GridMats supervision, training and travel", grp([9, 10])], ["IoT sensors, dashboard and performance study", grp([11])]];
   const rowsT = [[th("Scope"), th("List", "111A22", "right"), th("GridMats covers", "2E6B3A", "right"), th(`${client} pays`, "C22935", "right")]];
   lines.forEach(([l, v]) => rowsT.push([{ text: l }, { text: lakh(v.list), options: { align: "right" } }, { text: v.contrib ? lakh(v.contrib) : "-", options: { align: "right", color: "2E6B3A" } }, { text: v.pays ? lakh(v.pays) : "Included", options: { align: "right", bold: !v.pays, color: v.pays ? "1A1A1A" : "2E6B3A" } }]));
@@ -319,10 +320,10 @@ async function main() {
   s.addTable(rowsT, tblOpts({ x: MX, y: 1.75, w: 8.0, colW: [4.1, 1.25, 1.35, 1.3], rowH: 0.47 }));
   card(s, 8.95, 1.75, 3.78, 4.65, C.background1, "pay-card");
   stat(s, 9.2, 1.95, 3.3, lakh(O.PilotPays), `${client} pays, ex-GST: ₹${inr(O.PilotPaysSqft)}/sq ft (${lakh(O.PilotPaysGST)} with GST)`, C.accent1, 30);
-  stat(s, 9.2, 3.45, 3.3, lakh(O.PilotContrib), `GridMats contributes (${pct(O.PilotContribPct)} of list): design, half the PV layer, supervision, IoT study`, C.accent2, 30);
-  text(s, `Defect liability: 12 months from handover, with joint inspections. PV layer price ₹${inr(O.PVPilotSqft)}/sq ft (₹9,500/m²).`, { x: 9.2, y: 5.15, w: 3.3, h: 1.1, fontSize: 12, color: C.text2 });
+  stat(s, 9.2, 3.45, 3.3, lakh(O.PilotContrib), `GridMats contributes (${pct(O.PilotContribPct)} of list): design, ${pct(CFG.cofund)} of the PV layer, supervision, IoT study`, C.accent2, 30);
+  text(s, `Defect liability: 12 months from handover, with joint inspections. PV layer price ₹${inr(O.PVPilotSqft)}/sq ft (₹${inr(O.PVPilot)}/m²).`, { x: 9.2, y: 5.15, w: 3.3, h: 1.1, fontSize: 12, color: C.text2 });
   source(s, `Co-funding of the PV layer: ${pct(CFG.cofund)} (pilot offer, needs MD approval). Full physical installed cost before co-funding: ${lakh(O.PilotPhys)} (₹${inr(O.PilotPhysSqft)}/sq ft).`);
-  s.addNotes(`The offer: ${client} pays for the base, half the PV layer, the electrical work and installation; GridMats carries engineering, the other half of the PV layer, supervision and the monitoring study. Prices shown per sq ft first.`);
+  s.addNotes(`The offer: ${client} pays for the ground preparation, the base, ${pct(1 - CFG.cofund)} of the PV layer, the electrical work and installation; GridMats carries engineering, ${pct(CFG.cofund)} of the PV layer, supervision and the monitoring study. Prices shown per sq ft first.`);
 
   // ============================================================ 9. ECONOMICS
   pres.addSection({ title: "Economics" });
@@ -338,15 +339,15 @@ async function main() {
   }));
   const ro = [[`₹${inr(O.RO_CostSqft)}/sq ft`, `installed at rollout (₹${inr(O.RO_CostM2)}/m²)`, C.text1], [yrs(O.RO_Payback), "payback, net of the walkway it replaces", C.accent2], [pct(O.RO_IRR), "IRR over 20 years, pre-tax", C.accent2], [`₹${O.RO_LCOE.toFixed(2)}`, `per kWh, against grid power at ₹${CFG.tariff.toFixed(2)}`, C.accent6]];
   ro.forEach((r, i) => stat(s, 10.15, 1.8 + i * 1.15, 2.6, r[0], r[1], r[2], 22));
-  source(s, `Rollout uses the rollout PV-layer price (₹8,500/m²), the GridMats price ladder and a ₹1,200/m² credit for the paver walkway it replaces. ${pct(CFG.tariff_escalation)} tariff escalation, ${pct(CFG.discount_rate)} discount rate.`);
-  s.addNotes("Separate the two cases. The pilot is an evidence purchase, made cheap by co-funding. The business case is rollout: at campus scale, with rollout prices and a credit for the walkway that would be built anyway, payback is a little under five years.");
+  source(s, `Rollout uses the rollout PV-layer price (₹${inr(O.PVScale)}/m²), the GridMats price ladder and a ₹${inr(O.ConvWalk)}/m² credit for the paver walkway it replaces. ${pct(CFG.tariff_escalation)} tariff escalation, ${pct(CFG.discount_rate)} discount rate.`);
+  s.addNotes(`Separate the two cases. The pilot is an evidence purchase, made cheaper by co-funding. The rollout case at today's prices pays back in ${O.RO_Payback.toFixed(1)} years and delivers power at ₹${O.RO_LCOE.toFixed(2)}/kWh against ₹${CFG.tariff.toFixed(2)} from the grid, so say plainly that it is not yet a pure energy-savings case. It improves with the walkway credit, a higher tariff, volume pricing and measured yield; the pilot measures the yield.`);
 
   // ============================================================ 10. COMPARISON
   s = content("Economics", "How it compares", "Rooftop solar is cheaper per kWp. The walkway wins where roofs are full and a walkway is being built anyway.");
   const cmp = D.comparison;
   s.addChart(pres.charts.BAR, [{ name: "₹ per kWp", labels: ["C&I rooftop", "Solar carport", "GridMats Solar Walkway"], values: [cmp["Capex per kWp (₹)"][1], cmp["Capex per kWp (₹)"][2], cmp["Capex per kWp (₹)"][0]] }],
     Object.assign(chartBase(), { x: MX, y: 1.75, w: 5.7, h: 4.65, barDir: "bar", chartColors: [HX.accent6], showValue: true, dataLabelPosition: "outEnd", dataLabelFormatCode: "₹#,##0",
-      valAxisHidden: true, valGridLine: { style: "none" }, showLegend: false, catAxisOrientation: "maxMin", valAxisMinVal: 0, valAxisMaxVal: 95000, title: "Installed cost per kWp" }));
+      valAxisHidden: true, valGridLine: { style: "none" }, showLegend: false, catAxisOrientation: "maxMin", valAxisMinVal: 0, valAxisMaxVal: Math.ceil(Math.max(...cmp["Capex per kWp (₹)"].slice(0, 3)) * 1.25 / 10000) * 10000, title: "Installed cost per kWp" }));
   const ct = [[th("On the same footprint"), th("Walkway", "C22935", "center"), th("Rooftop", "111A22", "center"), th("Carport", "111A22", "center"), th("Pavers + rooftop", "111A22", "center")]];
   const crow = (lab, key, f) => [{ text: lab, options: { bold: true } }].concat(cmp[key].map((v) => ({ text: f(v), options: { align: "center" } })));
   ct.push(crow("Payback (years)", "Simple payback on year-1 figures (years)", (v) => Number(v).toFixed(1)));
@@ -477,13 +478,13 @@ async function main() {
     ["Cell technology", `${O.TechSel}: ${(O.TechTempCoef * 100).toFixed(2)}%/°C; ${pct(O.Deg1)} then ${pct(O.Degr, 1)}/yr`, "2026 datasheets; walk-on wear +0.2%/yr"],
     ["Performance ratio; shading", `${pct(O.PR)} (seven losses); ${pct(CFG.shading_loss)}`, "Loss stack on 'Product & Costs'; site assessment"],
     ["Power price; escalation", `₹${CFG.tariff.toFixed(2)}/kWh; ${pct(CFG.tariff_escalation)}/yr`, CFG.tariff_source || "Site electricity bill"],
-    ["PV layer price", `₹${inr(O.PVPilotSqft)}/sq ft pilot; ₹${inr(8500 / 10.7639)}/sq ft rollout`, "₹9,500/m² quote; ₹8,000-9,000/m² range"],
-    ["Base and electrical", "OC-LW 40 ₹64/sq ft; BOS ₹8/Wp", "Price ladder (Sep 2026); earlier ROI model"],
+    ["PV layer price", `₹${inr(O.PVPilotSqft)}/sq ft pilot; ₹${inr(O.PVScale / 10.7639)}/sq ft rollout`, "GridMats pilot and volume pricing, Oct 2026"],
+    ["Ground, base, electrical", `Prep ₹${inr(O.CivilNew / 10.7639)}/sq ft (${O.WMMThick} mm WMM); OC-LW 40 ₹64/sq ft; electrical ₹${O.BOSPilot.toFixed(1)}/Wp`, `Site soil CBR ${CFG.soil_cbr}% (confirm by test); price ladder Sep 2026`],
     ["O&M; life", "1.5% of capex/yr; 20 years", "Earlier ROI model"],
     ["Rooftop; carport", "₹40/Wp; ₹61/Wp all-in", "Earlier ROI model benchmarks"],
     ["GST", "8.9% composite (5% goods, 18% services)", "Notification 9/2025, from 22 Sep 2025"]].forEach((r) => ap.push(r.map((t, j) => ({ text: t, options: { bold: j === 0 } }))));
   s.addTable(ap, tblOpts({ x: MX, y: 1.68, w: CW, colW: [3.0, 4.4, 4.73], rowH: 0.43, fontSize: 12 }));
-  source(s, `Changes from earlier calculations: walkway power 126-110 → 160 W/m²; PV layer ₹2,500 (input error) → ₹9,500/m²; base HD ₹1,200 → OC-LW ₹690/m²; flat 78% PR → ${pct(O.PR)} loss stack; GST 13.8% → 8.9%.`, 6.55);
+  source(s, `Walkway power is the 160 W/m² design basis (Oct 2026). Prices are GridMats pilot prices, ex-GST. Performance ratio ${pct(O.PR)} from a seven-loss stack, not a flat figure.`, 6.55);
   s.addNotes("Reference slide. Every value here is an editable input in the model.");
 
   await pres.writeFile({ fileName: OUT });
