@@ -1,0 +1,55 @@
+{
+  "_comment": "Client settings for the GridMats Solar Walkway proposal template. Copy _new-client.json, fill it in, then run build/build.sh <file-name-without-.json>.",
+  "id": "reliance-jio",
+  "client_short": "Reliance Jio",
+  "client_entity": "Reliance Jio Infocomm Limited",
+  "site_name": "Reliance Corporate Park (TC-22), Ghansoli",
+  "site_city": "Navi Mumbai, Maharashtra",
+  "irradiance_city": "Mumbai",
+  "utility": "MSEDCL",
+  "tariff_category": "HT-II Commercial (assumed; confirm from the RCP electricity bill)",
+  "tariff": 10.0,
+  "tariff_note": "Avoided daytime cost on MSEDCL HT-II Commercial: energy + wheeling after the solar-hour ToD rebate (MERC order, 25 Mar 2026). About ₹7.1 if the campus is billed HT-I industrial.",
+  "tariff_source": "MSEDCL HT-II, MERC order 25 Mar 2026; confirm from bill",
+  "tariff_escalation": 0.03,
+  "shading_loss": 0.05,
+  "build_type": "New walkway",
+  "pilot_length_m": 12.5,
+  "pilot_width_m": 2.0,
+  "phase2_area": 250,
+  "campus_area": 1000,
+  "portfolio_area": 5000,
+  "portfolio_label": "Jio offices and EV-charging walkways (illustrative)",
+  "cofund": 0.5,
+  "discount_rate": 0.1,
+  "tax_rate": 0.2517,
+  "evaluation_months": 3,
+  "monitoring_months": 12,
+  "proposal_date": "October 2026",
+  "prepared_by": "GridMats (GroundReality Enterprises Pvt. Ltd.)",
+  "why_points": [
+    [
+      "Roofs are already busy",
+      "Office roofs carry HVAC, water tanks and access; walkways are open sky that is paved anyway."
+    ],
+    [
+      "A visible proof point",
+      "Employees and visitors walk on the power plant every day: Reliance's Net Carbon Zero 2035 goal, made tangible."
+    ],
+    [
+      "Made for a digital campus",
+      "Every tile is metered and sensed: a live data feed that can plug into JioThings and the campus IoT stack."
+    ],
+    [
+      "Small, safe first step",
+      "25 m², low-voltage DC, built in days; decide on rollout with three months of measured data."
+    ]
+  ],
+  "site_requirements": [
+    "A sunny 12-14 m stretch of walkway, about 2 m wide, with little shade from 9 am to 4 pm",
+    "A low-voltage connection point within about 30 m (distribution board or lighting panel)",
+    "Permission for a 2-3 day installation window and a safety induction",
+    "A Jio facilities contact for monthly readings and the 3-month review"
+  ],
+  "deck_tagline": "A 25 m² pilot walkway that generates power on the Jio campus"
+}

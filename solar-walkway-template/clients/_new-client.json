@@ -1,0 +1,55 @@
+{
+  "_comment": "Blank client settings. Copy to <client-id>.json, replace every value, then run build/build.sh <client-id>. Text in [brackets] shows on the slides until you replace it.",
+  "id": "_new-client",
+  "client_short": "[Client]",
+  "client_entity": "[Client legal entity]",
+  "site_name": "[Campus or site name]",
+  "site_city": "[City, State]",
+  "irradiance_city": "Bengaluru",
+  "utility": "[Electricity supplier]",
+  "tariff_category": "[Tariff category, from the site's electricity bill]",
+  "tariff": 9.0,
+  "tariff_note": "Placeholder: replace with the landed ₹/kWh from the site's electricity bill.",
+  "tariff_source": "[Site electricity bill]",
+  "tariff_escalation": 0.03,
+  "shading_loss": 0.05,
+  "build_type": "New walkway",
+  "pilot_length_m": 10.0,
+  "pilot_width_m": 2.0,
+  "phase2_area": 200,
+  "campus_area": 1000,
+  "portfolio_area": 5000,
+  "portfolio_label": "[Other sites] (illustrative)",
+  "cofund": 0.5,
+  "discount_rate": 0.1,
+  "tax_rate": 0.2517,
+  "evaluation_months": 3,
+  "monitoring_months": 12,
+  "proposal_date": "[Month Year]",
+  "prepared_by": "GridMats (GroundReality Enterprises Pvt. Ltd.)",
+  "why_points": [
+    [
+      "Roofs are already busy",
+      "Roofs carry plant, tanks and access; walkways are open sky that is paved anyway."
+    ],
+    [
+      "A visible proof point",
+      "People walk on the power plant every day: sustainability goals made tangible."
+    ],
+    [
+      "Measured and connected",
+      "Every tile is metered and sensed, with a live dashboard."
+    ],
+    [
+      "Small, safe first step",
+      "A pilot of 20-25 m², low-voltage DC, built in days; decide on rollout with measured data."
+    ]
+  ],
+  "site_requirements": [
+    "A sunny 10-14 m stretch of walkway, about 2 m wide, with little shade from 9 am to 4 pm",
+    "A low-voltage connection point within about 30 m",
+    "Permission for a 2-3 day installation window and a safety induction",
+    "A facilities contact for monthly readings and the 3-month review"
+  ],
+  "deck_tagline": "A pilot walkway that generates power on your campus"
+}

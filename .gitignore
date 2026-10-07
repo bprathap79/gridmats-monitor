@@ -2,3 +2,7 @@ reliance-pilot/build/node_modules/
 reliance-pilot/build/outputs.json
 reliance-pilot/build/chartdata.json
 reliance-pilot/build/__pycache__/
+solar-walkway-template/build/node_modules
+solar-walkway-template/build/__pycache__/
+solar-walkway-template/output/*/outputs.json
+solar-walkway-template/output/*/chartdata.json
